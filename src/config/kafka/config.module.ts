@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule } from '@nestjs/microservices';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import config from './config';
 import schema from './schema';
 
@@ -20,6 +20,7 @@ import schema from './schema';
         useFactory: (configService: ConfigService) => {
           const kafkaConfig = configService.get('kafka');
           return {
+            transport: Transport.KAFKA,
             options: {
               client: {
                 brokers: kafkaConfig.brokers,

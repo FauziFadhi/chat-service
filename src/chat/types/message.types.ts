@@ -17,3 +17,7 @@ export type Message = {
   replyToMessageId?: number;
   forwardFromMessageId?: number;
 };
+
+export type ReceiverMessage = Message & {
+  authorId: number;
+};

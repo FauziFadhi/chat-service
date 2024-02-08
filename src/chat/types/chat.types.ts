@@ -6,4 +6,5 @@ export type User = {
 
 export interface ClientEvent {
   reply: (message: Message) => void;
+  notification: (roomId: number) => void;
 }

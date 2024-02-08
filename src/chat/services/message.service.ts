@@ -3,12 +3,12 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MessageService {
-  async newMessage(authorId: number, dto: Message) {
+  async storeMessage(authorId: number, dto: Message) {
     // TODO: find roomByParticipants
     //TODO: create new Message
-    //TODO publish notifications
-    //TODO: send message to room
   }
+
+  async getRoomParticipants(roomId: number) {}
 
   async getMessages(roomId: number) {}
 

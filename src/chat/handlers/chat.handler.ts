@@ -9,10 +9,12 @@ import {
 } from '@nestjs/websockets';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
-import { ClientEvent, Message, User } from '@chat/types';
-import { MESSAGE_EVENT } from '@chat/constant/event.constant';
+import { ClientEvent, Message, ReceiverMessage, User } from '@chat/types';
+import { JOIN_EVENT, MESSAGE_EVENT } from '@chat/constant/event.constant';
 import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ClientKafka } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 type SocketType = Socket<any, any, any, User>;
 @WebSocketGateway({
@@ -22,7 +24,11 @@ type SocketType = Socket<any, any, any, User>;
   namespace: 'chats',
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject('kafka-client')
+    private readonly kafkaClient: ClientKafka,
+  ) {}
   @WebSocketServer()
   server: Server<any, ClientEvent>;
 
@@ -31,15 +37,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: Message,
     @ConnectedSocket() client: SocketType,
   ) {
-    this.server.to(client.id).emit('reply', data);
+    client.join(`${data.roomId}`);
+    await lastValueFrom(
+      this.kafkaClient.emit('chats.message-created', {
+        value: { ...data, authorId: client.data.userId },
+        key: { roomId: data.roomId },
+      }),
+    );
   }
 
-  async sendReplyMessage(receiverId: string, message: Message) {
-    const receiverClientId = await this.cacheManager.get<string>(receiverId);
-    if (!receiverClientId) {
-      return;
-    }
-    this.server.to(receiverClientId).emit('reply', message);
+  @SubscribeMessage(JOIN_EVENT)
+  async join(
+    @MessageBody() data: Message,
+    @ConnectedSocket() client: SocketType,
+  ) {
+    client.join(`${data.roomId}`);
+  }
+
+  async sendMessageToReceiver(roomId: number, message: ReceiverMessage) {
+    const authorClientId = await this.cacheManager.get<string>(
+      `${message.authorId}`,
+    );
+    this.server
+      .to(`${roomId}`)
+      .except(`${authorClientId}`)
+      .emit('reply', message);
+  }
+
+  async sendNotification(
+    roomParticipantIds: number[],
+    message: Pick<ReceiverMessage, 'roomId' | 'authorId'>,
+  ) {
+    const clientIds = (
+      await Promise.all(
+        roomParticipantIds.map((id) => this.cacheManager.get<string>(`${id}`)),
+      )
+    ).filter(Boolean) as string[];
+
+    const authorClientId = await this.cacheManager.get<string>(
+      `${message.authorId}`,
+    );
+
+    this.server
+      .to(clientIds)
+      .except(`${authorClientId}`)
+      .emit('notification', message.roomId);
   }
 
   async handleConnection(client: SocketType) {
