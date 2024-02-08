@@ -26,7 +26,7 @@ type PrivateMessage = CommonMessage & {
 
 type GroupMessage = CommonMessage & {
   type: 'group';
-  peerId: number;
+  groupId: number;
 };
 
 export type Message = PrivateMessage | GroupMessage;
