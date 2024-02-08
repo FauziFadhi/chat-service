@@ -4,6 +4,8 @@ import { AppModule } from './app.module';
 import { engines } from '../package.json';
 import { satisfies } from 'semver';
 import { Logger, VersioningType } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
   const nodeVersion = engines.node;
@@ -21,6 +23,29 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
+
+  const configService = app.get(ConfigService);
+  const kafkaConfig = configService.get<any>('kafka');
+
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        brokers: kafkaConfig.brokers,
+        ssl: process.env.ENV !== 'local',
+        sasl: {
+          username: kafkaConfig.username,
+          password: kafkaConfig.password,
+          mechanism: kafkaConfig.mechanism ? kafkaConfig.mechanism : 'plain',
+        },
+      },
+      consumer: {
+        groupId: kafkaConfig.consumerGroup,
+      },
+    },
+  });
+
+  app.startAllMicroservices();
 
   new Logger().log(
     `Your Application run in ${await app.getUrl()}`,

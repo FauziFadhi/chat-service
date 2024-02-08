@@ -24,7 +24,7 @@
       "console": "integratedTerminal",
       "protocol": "inspector",
       "env": {
-        // "ENV": "local",
+        "ENV": "local",
         "DEBUG": "sequelize*"
       },
       "restart": true
