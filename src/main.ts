@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 
 import { engines } from '../package.json';
 import { satisfies } from 'semver';
-import { VersioningType } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 
 async function bootstrap() {
   const nodeVersion = engines.node;
@@ -21,5 +21,10 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
+
+  new Logger().log(
+    `Your Application run in ${await app.getUrl()}`,
+    'Nest Application',
+  );
 }
 bootstrap();
