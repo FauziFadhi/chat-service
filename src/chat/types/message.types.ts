@@ -1,23 +1,19 @@
-type TextContent = {
+export type TextContent = {
   type: 'text';
   message: string;
   attachments?: string[];
-  replyToMessageId?: number;
 };
 
-type MediaContent = {
+export type MediaContent = {
   type: 'video' | 'voice';
   buffer: Buffer;
 };
 
 export type Message = {
+  authorId: number;
   type: 'private' | 'group';
   roomId: number;
   content: TextContent | MediaContent;
-  replyToMessageId?: number;
-  forwardFromMessageId?: number;
-};
-
-export type ReceiverMessage = Message & {
-  authorId: number;
+  // replyToMessageId?: number;
+  // forwardFromMessageId?: number;
 };

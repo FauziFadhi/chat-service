@@ -1,4 +1,5 @@
 import {
+  BaseWsExceptionFilter,
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
@@ -9,12 +10,14 @@ import {
 } from '@nestjs/websockets';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
-import { ClientEvent, Message, ReceiverMessage, User } from '@chat/types';
+import { ClientEvent, Message, User } from '@chat/types';
 import { JOIN_EVENT, MESSAGE_EVENT } from '@chat/constant/event.constant';
-import { Inject } from '@nestjs/common';
+import { Inject, UseFilters } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
+import { MessageReq } from './requests/message.request';
+import { validateOrReject } from 'class-validator';
 
 type SocketType = Socket<any, any, any, User>;
 @WebSocketGateway({
@@ -33,10 +36,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server<any, ClientEvent>;
 
   @SubscribeMessage(MESSAGE_EVENT)
+  @UseFilters(BaseWsExceptionFilter)
   async message(
-    @MessageBody() data: Message,
+    @MessageBody() data: MessageReq,
     @ConnectedSocket() client: SocketType,
   ) {
+    await validateOrReject(Object.assign(new MessageReq(), data));
     client.join(`${data.roomId}`);
     await lastValueFrom(
       this.kafkaClient.emit('chats.message-created', {
@@ -54,7 +59,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(`${data.roomId}`);
   }
 
-  async sendMessageToReceiver(roomId: number, message: ReceiverMessage) {
+  async sendMessageToReceiver(roomId: number, message: Message) {
     const authorClientId = await this.cacheManager.get<string>(
       `${message.authorId}`,
     );
@@ -66,7 +71,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async sendNotification(
     roomParticipantIds: number[],
-    message: Pick<ReceiverMessage, 'roomId' | 'authorId'>,
+    message: Pick<Message, 'roomId' | 'authorId'>,
   ) {
     const clientIds = (
       await Promise.all(

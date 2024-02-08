@@ -7,7 +7,7 @@ import {
 } from '@nestjs/microservices';
 import { ChatGateway } from './chat.handler';
 import { MessageService } from '@chat/services/message.service';
-import { ReceiverMessage } from '@chat/types';
+import { Message } from '@chat/types';
 
 @Controller()
 export class EventHandler {
@@ -16,11 +16,11 @@ export class EventHandler {
     private readonly messageService: MessageService,
   ) {}
   @EventPattern('chats.message-created')
-  async killDragon(
-    @Payload() message: ReceiverMessage,
+  async messageCreated(
+    @Payload() message: Message,
     @Ctx() context: KafkaContext,
   ) {
-    await this.messageService.storeMessage(101, message);
+    await this.messageService.storeMessage(message);
     await this.chatGateway.sendMessageToReceiver(message.roomId, message);
     await this.chatGateway.sendNotification([], message);
   }
