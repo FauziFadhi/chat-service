@@ -9,8 +9,8 @@ import {
 } from '@nestjs/websockets';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
-import { ClientEvent, Message, User } from './types/chat.types';
-import { MESSAGE_EVENT } from '../constant/event.constant';
+import { ClientEvent, Message, User } from '@chat/types';
+import { MESSAGE_EVENT } from '@chat/constant/event.constant';
 import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
