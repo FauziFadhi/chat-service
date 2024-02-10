@@ -62,4 +62,26 @@ export class AccountService {
   async #generatedToken(username: string) {
     return Buffer.from(`${username}:${'password'}`).toString('base64');
   }
+
+  /**
+   * get user by id
+   * @param id
+   * @returns
+   */
+  async getUserById(id: string) {
+    const result = await this.cassandraClient.execute(
+      `SELECT * from users WHERE id = ?`,
+      [id],
+    );
+
+    if (!result.rowLength) {
+      return null;
+    }
+
+    return {
+      id: result.first().get('id'),
+      username: result.first().get('username'),
+      name: result.first().get('name'),
+    };
+  }
 }

@@ -7,5 +7,6 @@ import { CassandraConfigModule } from '@config/cassandra/config.module';
   imports: [CassandraConfigModule],
   controllers: [AccountController],
   providers: [AccountService],
+  exports: [AccountService],
 })
 export class AccountModule {}
