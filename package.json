@@ -31,6 +31,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/platform-socket.io": "^10.3.2",
     "@nestjs/websockets": "^10.3.2",
+    "@types/uuid": "^9.0.8",
     "cache-manager": "^4.1.0",
     "cache-manager-redis-store": "^2.0.0",
     "cassandra-driver": "^4.7.2",
@@ -40,7 +41,8 @@
     "kafkajs": "^2.2.4",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "semver": "^7.6.0"
+    "semver": "^7.6.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

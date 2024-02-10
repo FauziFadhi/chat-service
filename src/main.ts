@@ -17,7 +17,6 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
   app.enableVersioning({
     type: VersioningType.URI,
   });
@@ -45,6 +44,7 @@ async function bootstrap() {
     },
   });
 
+  await app.listen(3000);
   app.startAllMicroservices();
 
   new Logger().log(
