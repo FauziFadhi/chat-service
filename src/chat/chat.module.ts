@@ -8,10 +8,16 @@ import { CassandraConfigModule } from '@config/cassandra/config.module';
 import { PrivateRoomService } from './services/room.service';
 import { RoomController } from './controllers/room.controller';
 import { AccountModule } from 'src/account/account.module';
+import { MessageController } from './controllers/message.controller';
 
 @Module({
-  imports: [CacheConfigModule, KafkaConfigModule, CassandraConfigModule, AccountModule],
-  controllers: [EventHandler, RoomController],
+  imports: [
+    CacheConfigModule,
+    KafkaConfigModule,
+    CassandraConfigModule,
+    AccountModule,
+  ],
+  controllers: [EventHandler, RoomController, MessageController],
   providers: [ChatGateway, MessageService, PrivateRoomService],
 })
 export class ChatModule {}

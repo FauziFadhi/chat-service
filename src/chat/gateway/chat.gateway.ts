@@ -109,11 +109,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param client
    */
   @SubscribeMessage(JOIN_EVENT)
-  async join(
+  async joinRoom(
     @MessageBody() data: JoinReq,
     @ConnectedSocket() client: SocketType,
   ) {
-    client.join(`${data.roomId}`);
+    client.join(data.roomId);
+  }
+
+  @SubscribeMessage(JOIN_EVENT)
+  async leaveRoom(
+    @MessageBody() data: JoinReq,
+    @ConnectedSocket() client: SocketType,
+  ) {
+    client.leave(data.roomId);
   }
 
   /**
