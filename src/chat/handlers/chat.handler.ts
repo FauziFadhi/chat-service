@@ -11,13 +11,18 @@ import {
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
 import { ClientEvent, Message, User } from '@chat/types';
-import { JOIN_EVENT, MESSAGE_EVENT } from '@chat/constant/event.constant';
-import { Inject, UseFilters } from '@nestjs/common';
+import {
+  JOIN_EVENT,
+  MESSAGE_CREATED_TOPIC,
+  MESSAGE_EVENT,
+} from '@chat/constant';
+import { Inject, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { MessageReq } from './requests/message.request';
 import { validateOrReject } from 'class-validator';
+import { WsExceptionFilter } from '@utils/ws.exception';
 
 type SocketType = Socket<any, any, any, User>;
 @WebSocketGateway({
@@ -70,17 +75,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param client
    */
   @SubscribeMessage(MESSAGE_EVENT)
-  @UseFilters(BaseWsExceptionFilter)
+  @UsePipes(new ValidationPipe())
+  @UseFilters(WsExceptionFilter)
   async message(
     @MessageBody() data: MessageReq,
     @ConnectedSocket() client: SocketType,
   ) {
-    await validateOrReject(Object.assign(new MessageReq(), data));
-
     client.join(`${data.roomId}`);
 
     await lastValueFrom(
-      this.kafkaClient.emit('chats.message-created', {
+      this.kafkaClient.emit(MESSAGE_CREATED_TOPIC, {
         value: { ...data, authorId: client.data.userId },
         key: { roomId: data.roomId },
       }),

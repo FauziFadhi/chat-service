@@ -21,6 +21,12 @@
     "paths": {
       "@chat/*": [
         "./src/chat/*"
+      ],
+      "@config/*": [
+        "./src/config/*",
+      ],
+      "@utils/*": [
+        "./src/utils/*"
       ]
     }
   }
