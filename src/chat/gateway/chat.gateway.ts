@@ -10,7 +10,13 @@ import {
 } from '@nestjs/websockets';
 import { Cache } from 'cache-manager';
 import { Server, Socket } from 'socket.io';
-import { ClientEvent, Message, User } from '@chat/types';
+import {
+  ClientEvent,
+  Message,
+  User,
+  NotificationEvent,
+  ErrorEvent,
+} from '@chat/types';
 import {
   JOIN_EVENT,
   MESSAGE_CREATED_TOPIC,
@@ -20,9 +26,9 @@ import { Inject, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
-import { MessageReq } from './requests/message.request';
-import { validateOrReject } from 'class-validator';
+import { JoinReq, MessageReq } from './requests/message.request';
 import { WsExceptionFilter } from '@utils/ws.exception';
+import { PrivateRoomService } from '@chat/services/room.service';
 
 type SocketType = Socket<any, any, any, User>;
 @WebSocketGateway({
@@ -31,6 +37,8 @@ type SocketType = Socket<any, any, any, User>;
   },
   namespace: 'chats',
 })
+@UsePipes(new ValidationPipe())
+@UseFilters(WsExceptionFilter)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server<any, ClientEvent>;
@@ -39,6 +47,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Inject('kafka-client')
     private readonly kafkaClient: ClientKafka,
+    private readonly roomService: PrivateRoomService,
   ) {}
 
   /**
@@ -47,8 +56,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @returns
    */
   async handleConnection(client: SocketType) {
-    // TODO: check token
-    const userId = client.handshake.headers.authorization;
+    const token = client.handshake.headers.authorization;
+    if (!token) {
+      client.disconnect();
+      return;
+    }
+    const decodedToken = Buffer.from(token, 'base64').toString();
+    const userId = decodedToken?.split(':')?.[0];
     if (!userId) {
       client.disconnect();
       return;
@@ -58,7 +72,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
     };
 
-    await this.cacheManager.set(`${userId}`, client.id, { ttl: 0 });
+    await this.cacheManager.set(userId, client.id, { ttl: 0 });
   }
 
   /**
@@ -66,7 +80,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param client
    */
   handleDisconnect(client: SocketType) {
-    this.cacheManager.del(`${client.data.userId}`);
+    this.cacheManager.del(client.data.userId);
   }
   /**
    * listen `message` event from client and publish to kafka
@@ -75,14 +89,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param client
    */
   @SubscribeMessage(MESSAGE_EVENT)
-  @UsePipes(new ValidationPipe())
-  @UseFilters(WsExceptionFilter)
   async message(
     @MessageBody() data: MessageReq,
     @ConnectedSocket() client: SocketType,
   ) {
-    client.join(`${data.roomId}`);
-
+    client.join(data.roomId);
     await lastValueFrom(
       this.kafkaClient.emit(MESSAGE_CREATED_TOPIC, {
         value: { ...data, authorId: client.data.userId },
@@ -99,26 +110,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   @SubscribeMessage(JOIN_EVENT)
   async join(
-    @MessageBody() data: Message,
+    @MessageBody() data: JoinReq,
     @ConnectedSocket() client: SocketType,
   ) {
     client.join(`${data.roomId}`);
   }
 
   /**
-   * send message to websocket client in the room except author
+   * send message to websocket client in the room
+   * author included for confirmation that message has been sent
    * @param roomId
    * @param message
    */
-  async sendMessageToReceiver(roomId: number, message: Message) {
+  async sendMessageToReceiver(roomId: string, message: Message) {
     const authorClientId = await this.cacheManager.get<string>(
       `${message.authorId}`,
     );
 
-    this.server
-      .to(`${roomId}`)
-      .except(`${authorClientId}`)
-      .emit('reply', message);
+    this.server.to(roomId).except(`${authorClientId}`).emit('reply', message);
   }
 
   /**
@@ -126,23 +135,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param roomParticipantIds list of room participant
    * @param message
    */
-  async sendNotification(
-    roomParticipantIds: number[],
-    message: Pick<Message, 'roomId' | 'authorId'>,
-  ) {
+  async sendNotification(receiverIds: string[], message: NotificationEvent) {
     const clientIds = (
       await Promise.all(
-        roomParticipantIds.map((id) => this.cacheManager.get<string>(`${id}`)),
+        receiverIds.map((id) => this.cacheManager.get<string>(id)),
       )
     ).filter(Boolean) as string[];
 
-    const authorClientId = await this.cacheManager.get<string>(
-      `${message.authorId}`,
-    );
+    this.server.to(clientIds).emit('notification', message);
+  }
 
-    this.server
-      .to(clientIds)
-      .except(`${authorClientId}`)
-      .emit('notification', message.roomId);
+  /**
+   * send failed event to client
+   * @param authorId
+   * @param error
+   * @returns
+   */
+  async sendFailedSendMessage(authorId: string, error: ErrorEvent) {
+    const authorClientId = await this.cacheManager.get<string>(authorId);
+    if (!authorClientId) return;
+
+    this.server.to(authorClientId).emit('error', error);
   }
 }

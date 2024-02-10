@@ -1,11 +1,9 @@
 import { PrivateRoomService } from '@chat/services/room.service';
 import {
   BadRequestException,
-  Body,
   Controller,
   Get,
   Param,
-  Post,
   UseGuards,
 } from '@nestjs/common';
 import { AccountService } from 'src/account/services/account.service';

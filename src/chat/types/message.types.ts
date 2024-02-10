@@ -9,11 +9,17 @@ export type MediaContent = {
   buffer: Buffer;
 };
 
-export type Message = {
+export type BaseMessage = {
   authorId: number;
-  type: 'private' | 'group';
-  roomId: number;
-  content: TextContent | MediaContent;
+  type: 'private';
+  content: TextContent;
+};
+
+export type Message = {
+  authorId: string;
+  type: 'private';
+  roomId: string;
+  content: TextContent;
   // replyToMessageId?: number;
   // forwardFromMessageId?: number;
 };

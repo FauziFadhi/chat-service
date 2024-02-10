@@ -5,7 +5,9 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
   ValidateNested,
+  isNotEmpty,
 } from 'class-validator';
 
 class MediaContentReq implements MediaContent {
@@ -31,20 +33,19 @@ class TextContentReq implements TextContent {
 
 export class MessageReq implements Omit<Message, 'authorId'> {
   @IsNotEmpty()
-  @IsEnum(['private', 'group'])
-  type: 'private' | 'group';
+  @IsEnum(['private'])
+  type: 'private';
 
+  @IsString()
   @IsNotEmpty()
-  @IsNumber()
-  roomId: number;
+  roomId: string;
 
   @ValidateNested()
-  content: TextContentReq | MediaContentReq;
+  content: TextContentReq;
+}
 
-  // @IsOptional()
-  // @IsNumber()
-  // replyToMessageId?: number | undefined;
-  // @IsOptional()
-  // @IsNumber()
-  // forwardFromMessageId?: number | undefined;
+export class JoinReq {
+  @IsString()
+  @IsNotEmpty()
+  roomId: string;
 }
