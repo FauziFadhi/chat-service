@@ -10,7 +10,7 @@ import { LoginReq } from './requests/login.request';
 import { RegisterReq } from './requests/register.request';
 
 @UsePipes(new ValidationPipe())
-@Controller({ path: 'account', version: '1' })
+@Controller({ path: 'accounts', version: '1' })
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
