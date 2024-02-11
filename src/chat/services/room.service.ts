@@ -1,12 +1,14 @@
 import { CassandraClient } from '@config/cassandra/client';
 import { Injectable } from '@nestjs/common';
+import { PrivateRoom } from '@shared/models/PrivateRoom';
+import { ExcludeTime } from '@shared/types';
 import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class PrivateRoomService {
   constructor(private readonly cassandraClient: CassandraClient) {}
 
-  async getRoomById(roomId: string) {
+  async getRoomById(roomId: string): Promise<ExcludeTime<PrivateRoom> | null> {
     const result = await this.cassandraClient.execute(
       `SELECT * from private_rooms WHERE id = ?`,
       [roomId],
@@ -44,7 +46,10 @@ export class PrivateRoomService {
     return result.first().get('id');
   }
 
-  async createRoom(room: { name: string }, roomParticipantIds: string[]) {
+  async createRoom(
+    room: { name: string },
+    roomParticipantIds: string[],
+  ): Promise<string> {
     const currentTime = new Date().getTime();
     const roomUUID = uuid();
     await this.cassandraClient.execute(

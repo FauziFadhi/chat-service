@@ -6,6 +6,8 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { User } from '@shared/models/User';
+import { ExcludeTime } from '@shared/types';
 
 @Injectable()
 export class AccountService {
@@ -46,9 +48,10 @@ export class AccountService {
     }
 
     const userUUID = uuid();
+    const currentTime = new Date();
     await this.cassandraClient.execute(
-      `INSERT INTO users (id, username, name) VALUES (?, ?, ?)`,
-      [userUUID, dto.username, dto.name],
+      `INSERT INTO users (id, username, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      [userUUID, dto.username, dto.name, currentTime, currentTime],
     );
 
     return this.#generatedToken(userUUID);
@@ -68,7 +71,7 @@ export class AccountService {
    * @param id
    * @returns
    */
-  async getUserById(id: string) {
+  async getUserById(id: string): Promise<ExcludeTime<User> | null> {
     const result = await this.cassandraClient.execute(
       `SELECT * from users WHERE id = ?`,
       [id],
@@ -85,7 +88,7 @@ export class AccountService {
     };
   }
 
-  async getUsers(exceptId?: string) {
+  async getUsers(exceptId?: string): Promise<ExcludeTime<User>[]> {
     const query = exceptId
       ? `SELECT * from users WHERE id != ?`
       : `SELECT * from users`;

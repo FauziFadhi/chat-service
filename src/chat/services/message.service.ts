@@ -1,6 +1,8 @@
 import { Message } from '@chat/types';
+import { Message as MessageModel } from '@shared/models/Message';
 import { CassandraClient } from '@config/cassandra/client';
 import { Injectable } from '@nestjs/common';
+import { ExcludeTime } from '@shared/types';
 
 @Injectable()
 export class MessageService {
@@ -38,7 +40,10 @@ export class MessageService {
    * get messages in a room from latest message or before latest messageId
    * @param roomId
    */
-  async getMessages(roomId: string, latestMessageId?: string) {
+  async getMessages(
+    roomId: string,
+    latestMessageId?: string,
+  ): Promise<Omit<MessageModel, 'updatedAt'>[]> {
     const messages = latestMessageId
       ? await this.cassandraClient.execute(
           `select * from messages where room_id = ? and id < ? order by id desc limit 10`,
