@@ -1,5 +1,4 @@
 import {
-  BaseWsExceptionFilter,
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
@@ -24,7 +23,6 @@ import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { JoinReq, MessageReq } from './requests/message.request';
 import { WsExceptionFilter } from '@utils/ws.exception';
-import { PrivateRoomService } from '@chat/services/room.service';
 
 type SocketType = Socket<any, any, any, User>;
 @WebSocketGateway({
@@ -43,7 +41,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Inject(KAFKA.CLIENT)
     private readonly kafkaClient: ClientKafka,
-    private readonly roomService: PrivateRoomService,
   ) {}
 
   /**
@@ -140,11 +137,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param message
    */
   async sendNotification(receiverIds: string[], message: NotificationEvent) {
+    if (!receiverIds?.length) return;
     const clientIds = (
       await Promise.all(
         receiverIds.map((id) => this.cacheManager.get<string>(id)),
       )
     ).filter(Boolean) as string[];
+
+    if (!clientIds?.length) return;
 
     this.server.to(clientIds).emit('notification', message);
   }
