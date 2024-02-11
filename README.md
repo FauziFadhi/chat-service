@@ -1,73 +1,72 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Technical Stack
+- Nodejs 20.10
+- Nestjs 10
+- Cassandra 4.1
+- Redis 6
+- Kafka
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+--- 
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+# How To Run
+make sure you can run `docker-compose`. here is the [installation guide](https://docs.docker.com/compose/install/).
 
-## Description
+1. make sure you are in the root folder of this project.
+2. rename `.env.example` file to `.env`
+3. then we can run our project with `docker-compose` with this command
+```sh
+docker-compose --project-name=wgw up -d
+``` 
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+4. next we have to prepare our database but `wait` about `1 minutes` to makesure cassandra completely running, we need to create keyspace and the tables. 
+for this project i dont create a database migration schema, because of that i created this script.
+```sh
+bash create_keyspace.sh
+``` 
+5. finish!! you already run the project.
 
-## Installation
+---
+---
+# Project Documentation
+- [Postman Link](https://documenter.getpostman.com/view/4219273/2sA2r3YkbU) postman just can publish the HTTP collection but can't publish the socket docs
 
-```bash
-$ npm install
+##  Collection Description
+### HTTP Docs
+- Account : List of api documentation of `account` module
+- - `Register`: to create an `account` to our apps
+- - `Login` : to get token to access our apps (just a `basic token` with `username` and static password)
+- - `me`*: to get our data
+- - `List`: to get list of users account
+- Chat : List of api documentations of chat module
+- - get Room Id*: this api will give a `roomId` with peer that we want to chat, if we dont have yet it will create it for us.
+- - Latest Messages*: list of messages for a room, with a pagination filter based on Id
+
+### Socket IO Docs (`URL: localhost:3000/chats`)
+event `message`* : this event for client send a message to peer on the room.
+```json
+{
+    "type": "private",
+    "roomId": "{{roomId}}",
+    "content": {
+        "type": "text",
+        "message": "{{your message}}"
+    }
+}
 ```
-
-## Running the app
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+event `join`*: this event for client to join a room
+```json
+{
+    "roomId": "{{roomId}}"
+}
 ```
-
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+event `leave`*: this event for client to leave a room
+```json
+{
+    "roomId": "{{roomId}}"
+}
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+nb:
+- `*` is need the basic token from login, put the token at `Authorization` header. ex: `Authorization: this_is_your_token`
+- client socket need to listen
+- - event `reply`*: to receive a message via message receiver is in the room
+- - event `notification`*: to listen an notification event like the message has been `sent`, new inbox if we are outside the `inbox`
+- - event `error`*: to receive an error if there is something about our messages
