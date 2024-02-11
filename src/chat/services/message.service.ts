@@ -38,7 +38,7 @@ export class MessageService {
    * get messages in a room from latest message or before latest messageId
    * @param roomId
    */
-  async getMessages(roomId: string, latestMessageId?: number) {
+  async getMessages(roomId: string, latestMessageId?: string) {
     const messages = latestMessageId
       ? await this.cassandraClient.execute(
           `select * from messages where room_id = ? and id < ? order by id desc limit 10`,
