@@ -1,0 +1,15 @@
+npm - debug.log
+manifests
+Dockerfile *
+  docker - compose *
+.dockerignore
+Jenkinsfile
+  .editorconfig
+  .git
+  .gitignore
+  .gitattributes
+  .gitlab - ci.yml
+README.md
+LICENSE
+  .vscode
+  .env *
