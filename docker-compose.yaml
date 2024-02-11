@@ -1,0 +1,118 @@
+version: '3.7'
+
+networks:
+  wegowhere_net:
+
+volumes:
+  redis_data:
+  cassandra_data:
+  kafka_data:
+  zookeper_data:
+  zookeeper_logs_data:
+
+services:
+  wgw_chat_service:
+    image: wgw_chat_service
+    container_name: wgw_chat_service
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - wgw_redis
+      - wgw_cassandra_db
+      - wgw_kafka1
+    ports:
+      - "3000:3000"
+    networks:
+      - wegowhere_net
+  wgw_redis:
+    image: "redis:6-alpine"
+    container_name: wgw_redis
+    hostname: wgw_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wegowhere_net
+    restart: always
+  wgw_cassandra_db:
+    image: "cassandra:4.1.3"
+    container_name: wgw_cassandra_db
+    hostname: wgw_cassandra_db
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - wegowhere_net
+    restart: always
+  wgw_zookeeper:
+    image: confluentinc/cp-zookeeper:7.0.4
+    container_name: wgw_zookeeper
+    hostname: wgw_zookeeper
+    networks:
+      - wegowhere_net
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs_data:/var/lib/zookeeper/log
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    # labels:
+    #   - "traefik.enable=false"
+
+  wgw_kafka1:
+    image: confluentinc/cp-kafka:7.0.4
+    container_name: wgw_kafka1
+    hostname: wgw_kafka1
+    depends_on:
+      - wgw_zookeeper
+    networks:
+      - wegowhere_net
+    ports:
+      - 9092:9092
+      - 9101:9101
+      - 19092:19092
+      - 29092:29092
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      # - ./secrets:/etc/kafka/secrets
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: wgw_zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://wgw_kafka1:9092,EXTERNAL://localhost:19092
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,SSL:SSL,EXTERNAL:SASL_PLAINTEXT
+      # KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:9092,SSL://kafka1:29092,EXTERNAL://localhost:19092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+              org.apache.kafka.common.security.plain.PlainLoginModule required \
+              username="admin" \
+              password="admin-secret" \
+              user_admin="admin-secret" \
+              user_mds="mds-secret";
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG: |
+              org.apache.kafka.common.security.plain.PlainLoginModule required \
+              username="admin" \
+              password="admin-secret" \
+              user_admin="admin-secret" \
+              user_mds="mds-secret";
+      KAFKA_SSL_KEYSTORE_FILENAME: wgw_kafka1.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: cert_creds
+      KAFKA_SSL_KEY_CREDENTIALS: cert_creds
+      KAFKA_SSL_TRUSTSTORE_FILENAME: wgw_kafka1.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: cert_creds
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
