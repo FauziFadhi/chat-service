@@ -3,7 +3,7 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 import { ChatGateway } from '../gateway/chat.gateway';
 import { MessageService } from '@chat/services/message.service';
 import { Message } from '@chat/types';
-import { MESSAGE_CREATED_TOPIC } from '@chat/constant';
+import { KAFKA } from '@chat/constant';
 import { PrivateRoomService } from '@chat/services/room.service';
 
 @Controller()
@@ -13,7 +13,7 @@ export class EventHandler {
     private readonly messageService: MessageService,
     private readonly roomService: PrivateRoomService,
   ) {}
-  @EventPattern(MESSAGE_CREATED_TOPIC)
+  @EventPattern(KAFKA.MESSAGE_CREATED_TOPIC)
   async messageCreated(@Payload() message: Message) {
     const room = await this.roomService.getRoomById(message.roomId);
 

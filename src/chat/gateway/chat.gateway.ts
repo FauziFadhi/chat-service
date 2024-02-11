@@ -17,11 +17,7 @@ import {
   NotificationEvent,
   ErrorEvent,
 } from '@chat/types';
-import {
-  JOIN_EVENT,
-  MESSAGE_CREATED_TOPIC,
-  MESSAGE_EVENT,
-} from '@chat/constant';
+import { GATEWAY, KAFKA } from '@chat/constant';
 import { Inject, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ClientKafka } from '@nestjs/microservices';
@@ -45,7 +41,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    @Inject('kafka-client')
+    @Inject(KAFKA.CLIENT)
     private readonly kafkaClient: ClientKafka,
     private readonly roomService: PrivateRoomService,
   ) {}
@@ -88,14 +84,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param data
    * @param client
    */
-  @SubscribeMessage(MESSAGE_EVENT)
+  @SubscribeMessage(GATEWAY.MESSAGE_EVENT)
   async message(
     @MessageBody() data: MessageReq,
     @ConnectedSocket() client: SocketType,
   ) {
     client.join(data.roomId);
     await lastValueFrom(
-      this.kafkaClient.emit(MESSAGE_CREATED_TOPIC, {
+      this.kafkaClient.emit(KAFKA.MESSAGE_CREATED_TOPIC, {
         value: { ...data, authorId: client.data.userId },
         key: { roomId: data.roomId },
       }),
@@ -108,7 +104,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * @param data
    * @param client
    */
-  @SubscribeMessage(JOIN_EVENT)
+  @SubscribeMessage(GATEWAY.JOIN_EVENT)
   async joinRoom(
     @MessageBody() data: JoinReq,
     @ConnectedSocket() client: SocketType,
@@ -116,7 +112,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(data.roomId);
   }
 
-  @SubscribeMessage(JOIN_EVENT)
+  @SubscribeMessage(GATEWAY.LEAVE_EVENT)
   async leaveRoom(
     @MessageBody() data: JoinReq,
     @ConnectedSocket() client: SocketType,

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import config from './config';
 import schema from './schema';
+import { KAFKA } from '@chat/constant';
 
 @Global()
 @Module({
@@ -15,7 +16,7 @@ import schema from './schema';
     }),
     ClientsModule.registerAsync([
       {
-        name: 'kafka-client',
+        name: KAFKA.CLIENT,
         inject: [ConfigService],
         useFactory: (configService: ConfigService) => {
           const kafkaConfig = configService.get('kafka');
