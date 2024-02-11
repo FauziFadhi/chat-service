@@ -84,4 +84,20 @@ export class AccountService {
       name: result.first().get('name'),
     };
   }
+
+  async getUsers(exceptId?: string) {
+    const query = exceptId
+      ? `SELECT * from users WHERE id != ?`
+      : `SELECT * from users`;
+
+    const params = exceptId ? [exceptId] : [];
+    const result = await this.cassandraClient.execute(query, params, {
+      prepare: true,
+    });
+    return result.rows.map((row) => ({
+      id: row.get('id'),
+      username: row.get('username'),
+      name: row.get('name'),
+    }));
+  }
 }
