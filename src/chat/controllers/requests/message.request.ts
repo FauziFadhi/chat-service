@@ -1,8 +1,10 @@
 import {
+  IsEnum,
   IsNotEmpty,
   IsNumberString,
   IsOptional,
   IsUUID,
+  ValidateIf,
 } from 'class-validator';
 
 export class GetMessagesParam {
@@ -12,7 +14,12 @@ export class GetMessagesParam {
 }
 
 export class GetMessagesQuery {
-  @IsOptional()
+  @ValidateIf((o) => o.context)
+  @IsNotEmpty()
   @IsNumberString()
   latestMessageId: string;
+
+  @IsOptional()
+  @IsEnum(['before', 'after'])
+  context: 'before' | 'after';
 }

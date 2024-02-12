@@ -8,12 +8,15 @@ import {
   Param,
   Query,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { IAppsUserPayload, User } from 'src/shared/decorators/user.decorator';
 import { TokenGuard } from 'src/shared/guards/auth.guard';
 import { GetMessagesParam, GetMessagesQuery } from './requests/message.request';
 
 @UseGuards(TokenGuard)
+@UsePipes(ValidationPipe)
 @Controller({ path: 'rooms/:roomId/messages', version: '1' })
 export class MessageController {
   constructor(
@@ -43,7 +46,12 @@ export class MessageController {
     }
     return await this.messageService.getMessages(
       params.roomId,
-      query.latestMessageId,
+      query.context
+        ? {
+            latestMessageId: query.latestMessageId,
+            context: query.context,
+          }
+        : undefined,
     );
   }
 }

@@ -42,20 +42,23 @@ export class MessageService {
    */
   async getMessages(
     roomId: string,
-    latestMessageId?: string,
+    dto?: { latestMessageId: string; context: 'before' | 'after' },
   ): Promise<Omit<MessageModel, 'updatedAt'>[]> {
-    const messages = latestMessageId
-      ? await this.cassandraClient.execute(
-          `select * from messages where room_id = ? and id < ? order by id desc limit 10`,
-          [roomId, latestMessageId],
-          {
-            prepare: true,
-          },
-        )
-      : await this.cassandraClient.execute(
-          `select * from messages where room_id = ? order by id desc limit 10`,
-          [roomId],
-        );
+    const params = dto ? [roomId, dto.latestMessageId] : [roomId];
+
+    let query = 'SELECT * FROM messages WHERE room_id = ?';
+
+    if (dto?.context === 'before') {
+      query += ' AND id < ?';
+    } else if (dto?.context === 'after') {
+      query += ' AND id > ?';
+    }
+
+    query += ' ORDER BY id DESC LIMIT 10';
+
+    const messages = await this.cassandraClient.execute(query, params, {
+      prepare: true,
+    });
 
     return messages.rows.map((message) => ({
       id: message.get('id'),
