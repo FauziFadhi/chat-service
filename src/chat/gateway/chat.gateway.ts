@@ -16,13 +16,15 @@ import {
   NotificationEvent,
   ErrorEvent,
 } from '@chat/types';
-import { GATEWAY, KAFKA } from '@chat/constant';
+import { GATEWAY } from '@chat/constant';
 import { Inject, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ClientKafka } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { JoinReq, MessageReq } from './requests/message.request';
 import { WsExceptionFilter } from '@utils/ws.exception';
+import { KAFKA_MSG } from '@shared/types';
+import { KAFKA } from '@shared/constant';
 
 type SocketType = Socket<any, any, any, User>;
 @WebSocketGateway({
@@ -88,10 +90,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     client.join(data.roomId);
     await lastValueFrom(
-      this.kafkaClient.emit(KAFKA.MESSAGE_CREATED_TOPIC, {
-        value: { ...data, authorId: client.data.userId },
-        key: { roomId: data.roomId },
-      }),
+      this.kafkaClient.emit<any, KAFKA_MSG['chats.message-created']>(
+        KAFKA.MESSAGE_CREATED_TOPIC,
+        {
+          value: { ...data, authorId: client.data.userId },
+          key: { roomId: data.roomId },
+        },
+      ),
     );
   }
 

@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import config from './config';
 import schema from './schema';
-import { KAFKA } from '@chat/constant';
+import { KAFKA } from '@shared/constant';
 
 @Global()
 @Module({

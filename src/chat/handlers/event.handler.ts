@@ -3,8 +3,8 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 import { ChatGateway } from '../gateway/chat.gateway';
 import { MessageService } from '@chat/services/message.service';
 import { Message } from '@chat/types';
-import { KAFKA } from '@chat/constant';
 import { PrivateRoomService } from '@chat/services/room.service';
+import { KAFKA } from '@shared/constant';
 
 @Controller()
 export class EventHandler {
