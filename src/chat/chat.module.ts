@@ -9,6 +9,7 @@ import { PrivateRoomService } from './services/room.service';
 import { RoomController } from './controllers/room.controller';
 import { AccountModule } from 'src/account/account.module';
 import { MessageController } from './controllers/message.controller';
+import { EventHandlerService } from './services/event-handler.service';
 
 @Module({
   imports: [
@@ -18,6 +19,11 @@ import { MessageController } from './controllers/message.controller';
     AccountModule,
   ],
   controllers: [EventHandler, RoomController, MessageController],
-  providers: [ChatGateway, MessageService, PrivateRoomService],
+  providers: [
+    ChatGateway,
+    MessageService,
+    PrivateRoomService,
+    EventHandlerService,
+  ],
 })
 export class ChatModule {}
