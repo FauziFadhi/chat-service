@@ -14,6 +14,11 @@ export type KAFKA_MSG = {
     key: { roomId: string };
   };
 
+  [KAFKA.RETRY_MESSAGE_CREATED_TOPIC]: {
+    value: Message & { attempt: number };
+    key: { roomId: string };
+  };
+
   [KAFKA.MESSAGE_READ_TOPIC]: {
     value: { dateTime: string };
     key: { roomId: string };
