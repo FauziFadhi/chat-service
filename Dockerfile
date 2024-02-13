@@ -12,4 +12,4 @@ EXPOSE ${PORT}
 
 RUN npm run build
 
-CMD ["node", "dist/src/main"]
+CMD ["node", "dist/src/main.js"]
